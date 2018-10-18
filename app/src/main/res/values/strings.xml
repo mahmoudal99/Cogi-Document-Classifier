@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">DocumentClassifier</string>
+
+    <string-array name="modules">
+
+        <item>History</item>
+        <item>module2</item>
+        <item>module3</item>
+        <item>module4</item>
+        <item>module5</item>
+
+    </string-array>
+
+</resources>
