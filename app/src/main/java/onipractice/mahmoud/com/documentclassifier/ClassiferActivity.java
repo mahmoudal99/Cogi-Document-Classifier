@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
 import android.support.annotation.NonNull;
@@ -33,6 +34,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,14 +48,8 @@ import static android.widget.Toast.LENGTH_SHORT;
 
 public class ClassiferActivity extends AppCompatActivity {
 
-    private static final int PERMISSION_REQUEST_STORAGE = 1000;
-    private static final int READ_REQUEST_CODE = 42;
-
     //Widgets
     Button start;
-    String fileName;
-    String text;
-    FloatingActionButton loadFileFA;
     FloatingActionButton process;
     TextView result;
 
@@ -72,7 +68,6 @@ public class ClassiferActivity extends AppCompatActivity {
     SharedPreferences.Editor editor;
     SharedPreferences prefs;
 
-    String[] extraKeywords;
     Set<String> wordsOfCat;
     Set<String> wordsToRemove;
     Map<String, Integer> frequencyOfWordsInCategory;
@@ -87,7 +82,6 @@ public class ClassiferActivity extends AppCompatActivity {
     //BufferReader
     BufferedReader reader;
     BufferedReader readWordsToRemove;
-    InputStream inputStream;
 
     Intent intent;
 
@@ -106,34 +100,18 @@ public class ClassiferActivity extends AppCompatActivity {
         prefs = getSharedPreferences("Categories", Context.MODE_PRIVATE);
         editor = prefs.edit();
 
+
         saveArrayList(history, "History");
         saveArrayList(biology, "Biology");
         saveArrayList(geography, "Geography");
 
         topic.addAll(getArrayList(categoryChosen));
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED){
-
-            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST_STORAGE);
-        }
-
-        writeFile();
-        loadRemovableWords();
+        startAsyncTask();
         init();
     }
 
     private void init(){
-
-        //When clicked user is given option to choose file they want to classify
-        loadFileFA.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                //Function Call
-                performFileSearch();
-            }
-        });
 
         process.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -168,48 +146,54 @@ public class ClassiferActivity extends AppCompatActivity {
 
     }
 
-    //Loads a list of pronouns and determiners which are removed from the document picked by user
-    private void loadRemovableWords(){
+    private static class loadRemovableWordsTask extends AsyncTask<Integer, Integer, String> {
 
-        wordsToRemove = new HashSet<String>();
+        private WeakReference<ClassiferActivity> activityWeakReference;
 
-        //Read the text file of the chosen category using a BufferedReader
-        try {
-            readWordsToRemove = new BufferedReader(new InputStreamReader(getAssets().open("WordsToRemove.txt")));
-        } catch (IOException e) {
-            e.printStackTrace();
+        loadRemovableWordsTask(ClassiferActivity activity) {
+            activityWeakReference = new WeakReference<ClassiferActivity>(activity);
         }
 
-        try {
+        @Override
+        protected String doInBackground(Integer... integers) {
 
-            String current = readWordsToRemove.readLine();
-
-            while (current != null) {
-
-                if (!current.trim().equals("")) {
-
-                    String[] words = current.split(" ");
-
-                    for (String word : words) {
-
-                        if (word == null || word.trim().equals("")) {
-
-                            continue;
-
-                        }
-
-                        wordsToRemove.add(word);
-                    }
-                }
-
-                current = readWordsToRemove.readLine();
-
+            ClassiferActivity activity = activityWeakReference.get();
+            if (activity == null || activity.isFinishing()) {
+                return "Done";
             }
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            activity.wordsToRemove = new HashSet<String>();
 
+            //Read the text file of the chosen category using a BufferedReader
+            try {
+                activity.readWordsToRemove = new BufferedReader(new InputStreamReader(activity.getAssets().open("WordsToRemove.txt")));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                String current = activity.readWordsToRemove.readLine();
+                while (current != null) {
+
+                    if (!current.trim().equals("")) {
+                        String[] words = current.split(" ");
+                        for (String word : words) {
+                            if (word == null || word.trim().equals("")) {
+                                continue;
+                            }
+                            activity.wordsToRemove.add(word);
+                        }
+                    }
+                    current = activity.readWordsToRemove.readLine();
+                }
+
+                Log.d("MAIN", "Loaded All!!!!!");
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return "Loaded";
+        }
     }
 
     //Initialize variables used in the layout
@@ -222,7 +206,6 @@ public class ClassiferActivity extends AppCompatActivity {
         biology = new ArrayList<>();
         start = (Button)findViewById(R.id.start);
         probsOfDocGivenSubCat = new HashMap<>();
-        loadFileFA = (FloatingActionButton) findViewById(R.id.load);
         process = (FloatingActionButton) findViewById(R.id.process);
         result = (TextView) findViewById(R.id.result);
 
@@ -258,15 +241,18 @@ public class ClassiferActivity extends AppCompatActivity {
         if (intent.hasExtra("History"))
         {
             categoryChosen = intent.getStringExtra("History");
+            pathToDocChosenByUser = intent.getStringExtra("path");
 
         }
         else if(intent.hasExtra("Biology")){
 
             categoryChosen = intent.getStringExtra("Biology");
+            pathToDocChosenByUser = intent.getStringExtra("path");
         }
         else if(intent.hasExtra("Geography")){
 
             categoryChosen = intent.getStringExtra("Geography");
+            pathToDocChosenByUser = intent.getStringExtra("path");
         }
     }
 
@@ -290,48 +276,10 @@ public class ClassiferActivity extends AppCompatActivity {
 
     }
 
-    //Creates a text file and saves it into phone storage
-    public void writeFile(){
+    public void startAsyncTask() {
 
-        fileName = "Volcanoes.txt";
-        text = "The most common perception of a volcano is of a conical mountain, " +
-                "spewing lava and poisonous gases from a crater at its summit; however, " +
-                "this describes just one of the many types of volcano. The features of volcanoes are much more complicated and their structure and" +
-                " behavior depends on a number of factors. Some volcanoes have rugged peaks formed by lava domes rather than a summit crater while " +
-                "others have landscape features such as massive plateaus. Vents that issue volcanic material (including lava and ash) " +
-                "and gases (mainly steam and magmatic gases) can develop anywhere on the landform and may give rise to smaller cones such as Puʻu ʻŌʻō on a " +
-                "flank of Hawaii's Kīlauea. Other types of volcano include cryovolcanoes (or ice volcanoes), particularly on some moons of Jupiter, " +
-                "Saturn, and Neptune; and mud volcanoes, which are formations often not associated with known magmatic activity. " +
-                "Active mud volcanoes tend to involve " +
-                "temperatures much lower than those of igneous volcanoes except when the mud volcano is actually a vent of an igneous volcano. ";
-
-        if(isExternalStorageWritable() && checkPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)){
-
-            File path = Environment.getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_DOWNLOADS);
-
-            File textFile = new File(path, fileName);
-            try{
-                FileOutputStream fos = new FileOutputStream(textFile);
-                fos.write(text.getBytes());
-                fos.close();
-
-                Toast.makeText(this, "File Saved.", LENGTH_SHORT).show();
-            }catch (IOException e){
-                e.printStackTrace();
-            }
-        }else{
-            Toast.makeText(this, "Cannot Write to External Storage.", LENGTH_SHORT).show();
-        }
-    }
-
-    //Search for file
-    private void performFileSearch()
-    {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("text/*");
-        startActivityForResult(intent, READ_REQUEST_CODE);
+        loadRemovableWordsTask task1 = new loadRemovableWordsTask(ClassiferActivity.this);
+        task1.execute(10);
     }
 
     //Loads the Category chosen by the user
@@ -349,57 +297,12 @@ public class ClassiferActivity extends AppCompatActivity {
 
     }
 
-    //Permissions
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-
-        if(requestCode == PERMISSION_REQUEST_STORAGE){
-
-            if(grantResults[0] == PackageManager.PERMISSION_GRANTED)
-            {
-                Toast.makeText(this, "Permission Granted", LENGTH_SHORT).show();
-            }else {
-                Toast.makeText(this, "Permission Denied", LENGTH_SHORT).show();
-                finish();
-            }
-        }
-    }
-
-    public boolean checkPermission(String permission){
-        int check = ContextCompat.checkSelfPermission(this, permission);
-        return (check == PackageManager.PERMISSION_GRANTED);
-    }
-
-    private boolean isExternalStorageWritable(){
-        if(Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())){
-            Log.i("State","Yes, it is writable!");
-            return true;
-        }else{
-            return false;
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-
-        if(requestCode == READ_REQUEST_CODE && resultCode == Activity.RESULT_OK){
-
-            if(data != null)
-            {
-                Uri uri = data.getData();
-                pathToDocChosenByUser = uri.getPath();
-                pathToDocChosenByUser = pathToDocChosenByUser.substring(pathToDocChosenByUser.indexOf(":") + 1);
-
-            }
-
-        }
-    }
-
 
     //Loads a subcategory text file and gets the frequency of each word in the text file
     // The frequency is stored in a Map
     private void loadCurrentSubCategory(BufferedReader reader)
     {
+
         //Stores the total number of all words in the sub Category
         totalNumOfWordsInCategory = 0;
         numberOfUniqueWordsInAllDocs = 0;
@@ -431,9 +334,7 @@ public class ClassiferActivity extends AppCompatActivity {
 
                         if(frequencyOfWordsInCategory.containsKey(processed)) {
 
-                            frequencyOfWordsInCategory.put(processed,
-
-                                    frequencyOfWordsInCategory.get(processed) + 1);
+                            frequencyOfWordsInCategory.put(processed, frequencyOfWordsInCategory.get(processed) + 1);
 
                         } else {
 
@@ -497,6 +398,7 @@ public class ClassiferActivity extends AppCompatActivity {
 
                 for(String word : wordsOfCat)
                 {
+
                     if(frequencyOfWordsInCategory.containsKey(word))
                     {
                         newMap.put(word, frequencyOfWordsInCategory.get(word));
