@@ -1,5 +1,10 @@
 <resources>
     <string name="app_name">DocumentClassifier</string>
+    <string name="choose_a_category">Choose A Category</string>
+    <string name="history">History</string>
+    <string name="biology">Biology</string>
+    <string name="politics">Politics</string>
+    <string name="geography">Geography</string>
 
     <string-array name="modules">
 

@@ -68,7 +68,7 @@ public class ClassiferActivity extends AppCompatActivity {
     SharedPreferences.Editor editor;
     SharedPreferences prefs;
 
-    Set<String> wordsOfCat;
+    Set<String> wordsOfDoc;
     Set<String> wordsToRemove;
     Map<String, Integer> frequencyOfWordsInCategory;
     Map<String, Double> probsOfDocGivenSubCat;
@@ -111,7 +111,7 @@ public class ClassiferActivity extends AppCompatActivity {
         init();
     }
 
-    private void init(){
+    private void init() {
 
         process.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -119,8 +119,7 @@ public class ClassiferActivity extends AppCompatActivity {
 
                 subCategoryIndex = 0;
                 //Loop through sub categories of a Category and get their probability
-                while (subCategoryIndex < topic.size())
-                {
+                while (subCategoryIndex < topic.size()) {
                     currentSubCategory = topic.get(subCategoryIndex);
                     loadSubCategory(currentSubCategory);
                     classify(pathToDocChosenByUser);
@@ -130,13 +129,11 @@ public class ClassiferActivity extends AppCompatActivity {
                 highestProbability = (Collections.max(probsOfDocGivenSubCat.values()));
 
                 //Loop through all probabilities of choose the highest
-                for(String word : probsOfDocGivenSubCat.keySet())
-                {
+                for (String word : probsOfDocGivenSubCat.keySet()) {
                     String key = word.toString();
                     double value = probsOfDocGivenSubCat.get(word);
 
-                    if(value == highestProbability)
-                    {
+                    if (value == highestProbability) {
                         correctFile = key;
                     }
                 }
@@ -187,8 +184,6 @@ public class ClassiferActivity extends AppCompatActivity {
                     current = activity.readWordsToRemove.readLine();
                 }
 
-                Log.d("MAIN", "Loaded All!!!!!");
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -197,36 +192,33 @@ public class ClassiferActivity extends AppCompatActivity {
     }
 
     //Initialize variables used in the layout
-    private void setupWidgets(){
+    private void setupWidgets() {
 
         topic = new ArrayList<>();
         history = new ArrayList<>();
         geography = new ArrayList<>();
         politics = new ArrayList<>();
         biology = new ArrayList<>();
-        start = (Button)findViewById(R.id.start);
+        start = findViewById(R.id.start);
         probsOfDocGivenSubCat = new HashMap<>();
-        process = (FloatingActionButton) findViewById(R.id.process);
-        result = (TextView) findViewById(R.id.result);
+        process = findViewById(R.id.process);
+        result = findViewById(R.id.result);
 
     }
 
     //Adding the possible categories into the History Array List
-    public void setHistory()
-    {
+    public void setHistory() {
         history.add("MongolEmpire");
         history.add("WorldWar2");
     }
 
     //Adding the possible categories into the Biology Array List
-    public void setBiology()
-    {
+    public void setBiology() {
         biology.add("Eye");
         biology.add("Heart");
-
     }
 
-    public void setGeography(){
+    public void setGeography() {
 
         geography.add("Volcanoes");
         geography.add("NitrogenCycle");
@@ -234,22 +226,18 @@ public class ClassiferActivity extends AppCompatActivity {
     }
 
     //Receives the option chosen by the user through an intent
-    private void getIncomingIntent()
-    {
+    private void getIncomingIntent() {
         intent = getIntent();
 
-        if (intent.hasExtra("History"))
-        {
+        if (intent.hasExtra("History")) {
             categoryChosen = intent.getStringExtra("History");
             pathToDocChosenByUser = intent.getStringExtra("path");
 
-        }
-        else if(intent.hasExtra("Biology")){
+        } else if (intent.hasExtra("Biology")) {
 
             categoryChosen = intent.getStringExtra("Biology");
             pathToDocChosenByUser = intent.getStringExtra("path");
-        }
-        else if(intent.hasExtra("Geography")){
+        } else if (intent.hasExtra("Geography")) {
 
             categoryChosen = intent.getStringExtra("Geography");
             pathToDocChosenByUser = intent.getStringExtra("path");
@@ -257,35 +245,31 @@ public class ClassiferActivity extends AppCompatActivity {
     }
 
     //Saves the array list of the categories to shared preferences
-    public void saveArrayList(ArrayList<String> list, String key){
-
+    public void saveArrayList(ArrayList<String> list, String key) {
         Gson gson = new Gson();
         String json = gson.toJson(list);
         editor.putString(key, json);
         editor.apply();
-
     }
 
     //Loads array list based on category chosen
-    public ArrayList<String> getArrayList(String key){
+    public ArrayList<String> getArrayList(String key) {
 
         Gson gson = new Gson();
         String json = prefs.getString(key, null);
-        Type type = new TypeToken<ArrayList<String>>() {}.getType();
+        Type type = new TypeToken<ArrayList<String>>() {
+        }.getType();
         return gson.fromJson(json, type);
 
     }
 
     public void startAsyncTask() {
-
         loadRemovableWordsTask task1 = new loadRemovableWordsTask(ClassiferActivity.this);
         task1.execute(10);
     }
 
     //Loads the Category chosen by the user
-    private void loadSubCategory(String subCategory)
-    {
-
+    private void loadSubCategory(String subCategory) {
         //Read the text file of the chosen category using a BufferedReader
         try {
             reader = new BufferedReader(new InputStreamReader(getAssets().open(subCategory + ".txt")));
@@ -294,14 +278,12 @@ public class ClassiferActivity extends AppCompatActivity {
         }
         //Calling the Classifier Function
         loadCurrentSubCategory(reader);
-
     }
 
 
     //Loads a subcategory text file and gets the frequency of each word in the text file
     // The frequency is stored in a Map
-    private void loadCurrentSubCategory(BufferedReader reader)
-    {
+    private void loadCurrentSubCategory(BufferedReader reader) {
 
         //Stores the total number of all words in the sub Category
         totalNumOfWordsInCategory = 0;
@@ -317,103 +299,71 @@ public class ClassiferActivity extends AppCompatActivity {
             while (line != null) {
 
                 if (!line.trim().equals("")) {
-
                     String[] words = line.split(" ");
-
                     for (String word : words) {
-
                         if (word == null || word.trim().equals("")) {
-
                             continue;
-
                         }
 
                         String processed = word.toLowerCase();
                         processed = processed.replace(",", "");
                         totalNumOfWordsInCategory++;
 
-                        if(frequencyOfWordsInCategory.containsKey(processed)) {
-
+                        if (frequencyOfWordsInCategory.containsKey(processed)) {
                             frequencyOfWordsInCategory.put(processed, frequencyOfWordsInCategory.get(processed) + 1);
-
                         } else {
-
                             frequencyOfWordsInCategory.put(processed, 1);
-
                         }
                     }
                 }
-
                 line = reader.readLine();
-
             }
-
             //Stores number of all words in all docs
             numberOfUniqueWordsInAllDocs += totalNumOfWordsInCategory;
-
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     //Classifies Document based on the highest probability given a certain sub category of a Topic
-    private void classify(String documentChosenByUser)
-    {
+    private void classify(String documentChosenByUser) {
         probability = 0.0;
 
-
         File file = new File(Environment.getExternalStorageDirectory(), documentChosenByUser);
-
-        wordsOfCat = new HashSet<>();
-
+        wordsOfDoc = new HashSet<>();
         try {
-
             BufferedReader readFile = new BufferedReader(new FileReader(file));
             String line = readFile.readLine();
 
-            while(line != null) {
+            while (line != null) {
+                if (!line.trim().equals("")) {
+                    String[] words = line.split(" ");
 
-                if(!line.trim().equals("")) {
-
-                    String [] words = line.split(" ");
-
-                    for(String word : words) {
-
-                        if(word == null || word.trim().equals("")) {
+                    for (String word : words) {
+                        if (word == null || word.trim().equals("")) {
                             continue;
                         }
-
                         String processed = word.toLowerCase();
                         processed = processed.replace(",", "");
-
-                        wordsOfCat.add(processed);
-
+                        wordsOfDoc.add(processed);
                     }
-
                 }
 
-                wordsOfCat.removeAll(wordsToRemove);
-
+                wordsOfDoc.removeAll(wordsToRemove);
                 Map<String, Integer> newMap = new HashMap<>();
 
-                for(String word : wordsOfCat)
-                {
-
-                    if(frequencyOfWordsInCategory.containsKey(word))
-                    {
+                for (String word : wordsOfDoc) {
+                    if (frequencyOfWordsInCategory.containsKey(word)) {
                         newMap.put(word, frequencyOfWordsInCategory.get(word));
                     }
                 }
 
-                for (String name: newMap.keySet()){
-
+                for (String name : newMap.keySet()) {
                     probability += (double) (newMap.get(name) + 1) / (totalNumOfWordsInCategory + numberOfUniqueWordsInAllDocs);
-
                 }
 
                 line = reader.readLine();
                 probsOfDocGivenSubCat.put(currentSubCategory, probability);
-
             }
 
         } catch (IOException e) {

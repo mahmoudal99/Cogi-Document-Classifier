@@ -46,8 +46,8 @@ public class ChooseFileActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_choose_file);
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
 
             requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST_STORAGE);
         }
@@ -57,17 +57,16 @@ public class ChooseFileActivity extends AppCompatActivity {
     }
 
     //Initialize variables used in the layout
-    private void setupWidgets(){
-        loadFileFA = (FloatingActionButton) findViewById(R.id.load);
+    private void setupWidgets() {
+        loadFileFA = findViewById(R.id.load);
         getIncomingIntent();
     }
 
-    private void init(){
+    private void init() {
         //When clicked user is given option to choose file they want to classify
         loadFileFA.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 //Function Call
                 performFileSearch();
             }
@@ -75,8 +74,7 @@ public class ChooseFileActivity extends AppCompatActivity {
     }
 
     //Search for file
-    private void performFileSearch()
-    {
+    private void performFileSearch() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("text/*");
@@ -87,13 +85,10 @@ public class ChooseFileActivity extends AppCompatActivity {
     //Permissions
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-
-        if(requestCode == PERMISSION_REQUEST_STORAGE){
-
-            if(grantResults[0] == PackageManager.PERMISSION_GRANTED)
-            {
+        if (requestCode == PERMISSION_REQUEST_STORAGE) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(this, "Permission Granted", LENGTH_SHORT).show();
-            }else {
+            } else {
                 Toast.makeText(this, "Permission Denied", LENGTH_SHORT).show();
                 finish();
             }
@@ -102,11 +97,8 @@ public class ChooseFileActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-
-        if(requestCode == READ_REQUEST_CODE && resultCode == Activity.RESULT_OK){
-
-            if(data != null)
-            {
+        if (requestCode == READ_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            if (data != null) {
                 Uri uri = data.getData();
                 pathToDocChosenByUser = uri.getPath();
                 pathToDocChosenByUser = pathToDocChosenByUser.substring(pathToDocChosenByUser.indexOf(":") + 1);
@@ -120,21 +112,13 @@ public class ChooseFileActivity extends AppCompatActivity {
 
 
     //Receives the option chosen by the user through an intent
-    private void getIncomingIntent()
-    {
+    private void getIncomingIntent() {
         intent = getIntent();
-
-        if (intent.hasExtra("History"))
-        {
+        if (intent.hasExtra("History")) {
             categoryChosen = intent.getStringExtra("History");
-
-        }
-        else if(intent.hasExtra("Biology")){
-
+        } else if (intent.hasExtra("Biology")) {
             categoryChosen = intent.getStringExtra("Biology");
-        }
-        else if(intent.hasExtra("Geography")){
-
+        } else if (intent.hasExtra("Geography")) {
             categoryChosen = intent.getStringExtra("Geography");
         }
     }

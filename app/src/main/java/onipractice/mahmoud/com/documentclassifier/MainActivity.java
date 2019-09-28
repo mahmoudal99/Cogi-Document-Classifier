@@ -68,23 +68,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
 
             requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST_STORAGE);
         }
 
         startAsyncTask();
 
-        historycardId = (CardView) findViewById(R.id.historycardId);
-        biocardId = (CardView) findViewById(R.id.biocardId);
-        politicscardId = (CardView) findViewById(R.id.politicscardId);
-        geocardId = (CardView) findViewById(R.id.geocardId);
+        historycardId = findViewById(R.id.historycardId);
+        biocardId = findViewById(R.id.biocardId);
+        politicscardId = findViewById(R.id.politicscardId);
+        geocardId = findViewById(R.id.geocardId);
         historycardId.setOnClickListener(this);
         biocardId.setOnClickListener(this);
         geocardId.setOnClickListener(this);
         politicscardId.setOnClickListener(this);
-        linearLayout = (LinearLayout) findViewById(R.id.linearLayout);
+        linearLayout = findViewById(R.id.linearLayout);
         linearLayout.setBackgroundColor(getColor(R.color.bg));
     }
 
@@ -94,7 +94,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         Intent intent;
 
-        switch (view.getId()){
+        switch (view.getId()) {
 
             case R.id.historycardId:
                 intent = new Intent(this, ChooseFileActivity.class);
@@ -129,7 +129,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         private WeakReference<MainActivity> activityWeakReference;
 
         ExampleAsyncTask(MainActivity activity) {
-            activityWeakReference = new WeakReference<MainActivity>(activity);
+            activityWeakReference = new WeakReference<>(activity);
         }
 
         // --------------New Page
@@ -143,20 +143,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             activity.fileName = "Mongols.txt";
             activity.text = "I was born in the Mongol empire in the year 1279";
 
-            if(activity.isExternalStorageWritable() && activity.checkPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)){
+            if (activity.isExternalStorageWritable() && activity.checkPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
 
                 String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/";
 
                 File textFile = new File(path, activity.fileName);
-                try{
+                try {
                     FileOutputStream fos = new FileOutputStream(textFile);
                     fos.write(activity.text.getBytes());
                     fos.close();
 
-                }catch (IOException e){
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
-            }else{
+            } else {
                 Log.d("Main", "ERROR!");
             }
 
@@ -164,28 +164,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
+        protected void onPostExecute(String message) {
+            super.onPostExecute(message);
 
             MainActivity activity = activityWeakReference.get();
             if (activity == null || activity.isFinishing()) {
                 return;
             }
 
-            Toast.makeText(activity, s, Toast.LENGTH_SHORT).show();
+            Toast.makeText(activity, message, Toast.LENGTH_SHORT).show();
         }
     }
 
-    public boolean checkPermission(String permission){
+    public boolean checkPermission(String permission) {
         int check = ContextCompat.checkSelfPermission(this, permission);
         return (check == PackageManager.PERMISSION_GRANTED);
     }
 
-    private boolean isExternalStorageWritable(){
-        if(Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())){
-            Log.i("State","Yes, it is writable!");
+    private boolean isExternalStorageWritable() {
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+            Log.i("State", "Yes, it is writable!");
             return true;
-        }else{
+        } else {
             return false;
         }
     }
